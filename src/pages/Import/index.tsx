@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
 
 import filesize from 'filesize';
 
+import { AxiosResponse } from 'axios';
 import Header from '../../components/Header';
 import FileList from '../../components/FileList';
 import Upload from '../../components/Upload';
@@ -19,23 +19,31 @@ interface FileProps {
 }
 
 const Import: React.FC = () => {
-  const [uploadedFiles, setUploadedFiles] = useState<FileProps[]>([]);
-  const history = useHistory();
+  const [filesToUpload, setFilesToUpload] = useState<FileProps[]>([]);
 
   async function handleUpload(): Promise<void> {
-    // const data = new FormData();
+    await Promise.all(
+      filesToUpload.map(
+        async (file): Promise<AxiosResponse<any>> => {
+          const formData = new FormData();
+          formData.append('file', file.file);
 
-    // TODO
+          return api.post('/transactions/import', formData);
+        },
+      ),
+    );
 
-    try {
-      // await api.post('/transactions/import', data);
-    } catch (err) {
-      // console.log(err.response.error);
-    }
+    setFilesToUpload([]);
   }
 
   function submitFile(files: File[]): void {
-    // TODO
+    const fileList = files.map((file) => {
+      const { name, size } = file;
+
+      return { file, name, readableSize: filesize(size) };
+    });
+
+    setFilesToUpload([...filesToUpload, ...fileList]);
   }
 
   return (
@@ -45,7 +53,7 @@ const Import: React.FC = () => {
         <Title>Importar uma transação</Title>
         <ImportFileContainer>
           <Upload onUpload={submitFile} />
-          {!!uploadedFiles.length && <FileList files={uploadedFiles} />}
+          {!!filesToUpload.length && <FileList files={filesToUpload} />}
 
           <Footer>
             <p>
